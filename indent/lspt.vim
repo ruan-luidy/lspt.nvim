@@ -58,7 +58,7 @@ function! LsptIndent(lnum) abort
 
   " Aumenta se prev termina com inicio, {, (, [
   if l:prev_text =~? '\(^\|\s\)\<inicio\>\s*$'
-        \ || l:prev_text =~ '\(\{\|(\|\[\)\s*$'
+        \ || l:prev_text =~ '[{([]\s*$'
     let l:ind += l:sw
   endif
 
@@ -69,7 +69,7 @@ function! LsptIndent(lnum) abort
 
   " Diminui se a linha atual começa com fim, }, ), ]
   if l:curr_text =~? '^\s*\<fim\>'
-        \ || l:curr_text =~ '^\s*[\}\)\]]'
+        \ || l:curr_text =~ '^\s*[})\]]'
     let l:ind -= l:sw
   endif
 

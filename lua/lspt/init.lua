@@ -18,16 +18,16 @@ function M.setup(opts)
   local config = require("lspt.config")
   config.setup(opts)
 
-  require("lspt.commands").register()
-
-  -- Autocmd: inicia o LSP para qualquer buffer .lspt já aberto
-  vim.api.nvim_create_autocmd("FileType", {
-    pattern = "lspt",
-    group   = vim.api.nvim_create_augroup("lspt-attach", { clear = true }),
-    callback = function(args)
-      require("lspt.lsp").try_start(args.buf)
-    end,
-  })
+  -- commands e autocmd FileType já são registrados por plugin/lspt.lua
+  -- (carregado automaticamente). Aqui só aplicamos a config do usuário.
+  --
+  -- Caso já exista um buffer .lspt aberto antes do setup, dispara o attach
+  -- manualmente — autocmd FileType só dispara em transição de filetype.
+  for _, buf in ipairs(vim.api.nvim_list_bufs()) do
+    if vim.api.nvim_buf_is_loaded(buf) and vim.bo[buf].filetype == "lspt" then
+      require("lspt.lsp").try_start(buf)
+    end
+  end
 end
 
 -- Reexporta APIs públicas

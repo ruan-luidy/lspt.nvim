@@ -1,0 +1,25 @@
+@-- Bloco 'Cabecalho' --@
+@-- Teste do plugin lspt.nvim — TODO: validar tudo --@
+
+Definir Alfa nNome;
+Definir Numero nIdade;
+Definir Data dNascimento;
+Definir Cursor cFunc;
+
+Funcao MinhaFuncao(alfa pNome, numero pIdade)
+  Inicio
+    Se pIdade > 18
+      Inicio
+        nNome = pNome;
+        ExecSql("SELECT nome FROM funcionario WHERE id = :pIdade");
+      Fim;
+    Senao
+      Inicio
+        mensagem(erro, "Idade invalida");
+      Fim;
+    Fim;
+    Retorna cverdadeiro;
+  Fim;
+Fim;
+
+@-- FimBloco 'Cabecalho' --@

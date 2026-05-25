@@ -29,12 +29,17 @@ local function exec(cmd, args)
   end)
 end
 
+local function ensure(tbl, key)
+  tbl[key] = tbl[key] or {}
+  return tbl[key]
+end
+
 local function update_setting(path, value)
   local cfg = require("lspt.config").get()
+  cfg.server_settings = cfg.server_settings or {}
   local node = cfg.server_settings
   for i = 1, #path - 1 do
-    node[path[i]] = node[path[i]] or {}
-    node = node[path[i]]
+    node = ensure(node, path[i])
   end
   node[path[#path]] = value
 
@@ -91,14 +96,27 @@ function M.register()
     { desc = "Remove um contexto LSP" })
   create("LsptContextValidate", function() exec("lsp.contexts.validate") end,
     { desc = "Valida os contextos LSP" })
+  create("LsptContextSettings", function() exec("lsp.contexts.openSettings") end,
+    { desc = "Abre configurações de contextos LSP" })
+
+  -- ----- Quick Fix (server-side) -----
+  create("LsptQuickFixConfirmName", function() exec("lsp.quickFix.confirmName") end,
+    { desc = "Aplica Quick Fix: confirmar nome" })
+  create("LsptQuickFixEditPlan", function() exec("lsp.quickFix.applyEditPlan") end,
+    { desc = "Aplica Quick Fix: plano de edição" })
 
   -- ----- Diagnósticos -----
+  local function ignored_ids()
+    local cfg = require("lspt.config").get()
+    local diag = cfg.server_settings and cfg.server_settings.diagnostics
+    return (diag and diag.ignoreIds) or {}
+  end
+
   create("LsptIgnoreId", function(opts)
     if opts.args == "" then
       exec("lsp.diagnostics.ignoreId")
     else
-      local cfg = require("lspt.config").get()
-      local list = cfg.server_settings.diagnostics.ignoreIds or {}
+      local list = vim.deepcopy(ignored_ids())
       if not vim.tbl_contains(list, opts.args) then
         table.insert(list, opts.args)
         update_setting({ "diagnostics", "ignoreIds" }, list)
@@ -111,10 +129,8 @@ function M.register()
     if opts.args == "" then
       exec("lsp.diagnostics.unignoreId")
     else
-      local cfg = require("lspt.config").get()
-      local list = cfg.server_settings.diagnostics.ignoreIds or {}
       local out = {}
-      for _, id in ipairs(list) do
+      for _, id in ipairs(ignored_ids()) do
         if id ~= opts.args then table.insert(out, id) end
       end
       update_setting({ "diagnostics", "ignoreIds" }, out)
@@ -123,8 +139,7 @@ function M.register()
   end, { nargs = "?", desc = "Para de ignorar um ID de diagnóstico" })
 
   create("LsptListIgnoredIds", function()
-    local cfg = require("lspt.config").get()
-    local list = cfg.server_settings.diagnostics.ignoreIds or {}
+    local list = ignored_ids()
     if #list == 0 then
       print("[lspt] nenhum ID ignorado")
     else
@@ -135,8 +150,12 @@ function M.register()
 
   create("LsptClearIgnoredIds", function()
     update_setting({ "diagnostics", "ignoreIds" }, {})
-    vim.notify("[lspt] lista de IDs ignorados limpa")
-  end, { desc = "Limpa todos os IDs ignorados" })
+    vim.notify("[lspt] lista de IDs ignorados limpa (workspace)")
+  end, { desc = "Limpa todos os IDs ignorados (workspace)" })
+
+  -- Equivalente ao "Limpar IDs Ignorados (Usuário)" do VSCode original — server-side
+  create("LsptClearIgnoredIdsUser", function() exec("lsp.diagnostics.clearIgnoredIdsUser") end,
+    { desc = "Limpa IDs ignorados a nível de usuário (server-side)" })
 
   -- ----- Fallback System -----
   create("LsptSelectSystem", function(opts)
@@ -155,7 +174,9 @@ function M.register()
   -- ----- Format toggle -----
   create("LsptFormatToggle", function()
     local cfg = require("lspt.config").get()
-    local cur = cfg.server_settings.format.enabled
+    local fmt = cfg.server_settings and cfg.server_settings.format
+    local cur = fmt and fmt.enabled
+    if cur == nil then cur = true end
     update_setting({ "format", "enabled" }, not cur)
     vim.notify("[lspt] format.enabled = " .. tostring(not cur))
   end, { desc = "Liga/desliga o formatter" })

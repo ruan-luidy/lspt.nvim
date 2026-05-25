@@ -72,11 +72,18 @@ function M.install(on_done)
 
   vim.fn.mkdir(vim.fn.fnamemodify(dir, ":h"), "p")
 
-  -- 1) clone (se ainda não foi clonado)
+  -- 1) clone (se ainda não foi clonado) ou pull (para atualizar in-place)
   local function step_clone(next)
     if path_exists(join(dir, ".git")) then
-      notify("repo já clonado em " .. dir)
-      return next()
+      notify("repo já existe, atualizando via git pull ...")
+      run({ "git", "-C", dir, "pull", "--ff-only" }, nil, function(code, _, err)
+        if code ~= 0 then
+          on_done(false, "git pull falhou: " .. table.concat(err, "\n"))
+          return
+        end
+        next()
+      end)
+      return
     end
 
     notify("clonando " .. cfg.repo .. " ...")

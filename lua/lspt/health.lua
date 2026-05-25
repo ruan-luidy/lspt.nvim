@@ -42,11 +42,13 @@ function M.check()
 		warn("LuaSnip não encontrado — snippets não serão registrados")
 	end
 
-	-- cmp_nvim_lsp (opcional)
-	if pcall(require, "cmp_nvim_lsp") then
+	-- Completion (blink.cmp ou cmp_nvim_lsp; opcional)
+	if pcall(require, "blink.cmp") then
+		ok("blink.cmp presente — capacidades de completion ampliadas")
+	elseif pcall(require, "cmp_nvim_lsp") then
 		ok("cmp_nvim_lsp presente — capacidades de completion ampliadas")
 	else
-		info("cmp_nvim_lsp não encontrado (opcional)")
+		info("nenhum cmp encontrado (opcional: blink.cmp ou cmp_nvim_lsp)")
 	end
 
 	-- Server instalado?

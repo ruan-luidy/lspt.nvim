@@ -72,14 +72,9 @@ do
 end
 
 -- ---------------------------------------------------------------------------
--- LSP attach (também coberto pelo autocmd FileType em plugin/lspt.lua;
--- chamamos aqui para o caso de :setfiletype lspt em buffer scratch).
--- ---------------------------------------------------------------------------
-do
-  local ok, lsp = pcall(require, "lspt.lsp")
-  if ok then lsp.try_start(0) end
-end
-
+-- (LSP attach é tratado exclusivamente pelo autocmd FileType em
+-- plugin/lspt.lua — incluindo :setfiletype lspt em buffer scratch, que
+-- dispara o evento FileType.)
 -- ---------------------------------------------------------------------------
 -- undo_ftplugin: necessário para :setfiletype trocar para outro ft.
 -- ---------------------------------------------------------------------------

@@ -47,6 +47,10 @@ function M.attach(bufnr)
   bufnr = bufnr or 0
 
   vim.keymap.set("i", "<CR>", function()
+    -- Não interfere com confirmação de completion (nvim-cmp, built-in popup, etc.)
+    if vim.fn.pumvisible() == 1 then
+      return "<CR>"
+    end
     if expand_inicio() then
       return ""
     end

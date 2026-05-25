@@ -11,10 +11,13 @@
 
 local M = {}
 
-local fold_start = vim.regex([[\v^\s*\@--\s*\#?(bloco|Bloco)>(\s\'.*\')?\s*--\@]])
-local fold_end = vim.regex([[\v^\s*\@--\s*\#?(fimbloco|FimBloco|Fimbloco)>(\s\'.*\')?\s*--\@]])
-local inicio_re = vim.regex([[\v\c<inicio>\s*$]])
-local fim_re = vim.regex([[\v\c^\s*<fim>]])
+-- Em very-magic (\v) `@` é literal, mas evitamos a ambiguidade do `\@`
+-- (que em outros modos é lookaround) usando classe [@]. Usamos long-string
+-- nivel 1 ([==[...]==]) para não fechar prematuramente em ]].
+local fold_start = vim.regex([==[\v\c^\s*[@]--\s*#?bloco>(\s'.*')?\s*--[@]]==])
+local fold_end   = vim.regex([==[\v\c^\s*[@]--\s*#?fimbloco>(\s'.*')?\s*--[@]]==])
+local inicio_re  = vim.regex([==[\v\c<inicio>\s*$]==])
+local fim_re     = vim.regex([==[\v\c^\s*<fim>]==])
 
 local function get_line(lnum)
 	return vim.fn.getline(lnum)

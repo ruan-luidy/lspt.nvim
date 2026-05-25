@@ -6,9 +6,6 @@ local M = {}
 local config = require("lspt.config")
 local server = require("lspt.server")
 
--- Mantém o client_id por raiz (root_dir) para reaproveitamento.
-local clients_by_root = {}
-
 local function notify(msg, level)
   vim.notify("[lspt] " .. msg, level or vim.log.levels.INFO)
 end
@@ -42,9 +39,15 @@ local function build_capabilities()
 
   local caps = vim.lsp.protocol.make_client_capabilities()
   if cfg.cmp then
-    local ok, cmp_lsp = pcall(require, "cmp_nvim_lsp")
-    if ok then
-      caps = cmp_lsp.default_capabilities(caps)
+    -- blink.cmp (NvChad v2.5+) toma precedência se ambos existirem
+    local ok_blink, blink = pcall(require, "blink.cmp")
+    if ok_blink and blink.get_lsp_capabilities then
+      caps = blink.get_lsp_capabilities(caps)
+    else
+      local ok_cmp, cmp_lsp = pcall(require, "cmp_nvim_lsp")
+      if ok_cmp then
+        caps = cmp_lsp.default_capabilities(caps)
+      end
     end
   end
   return caps
@@ -64,6 +67,8 @@ local function default_on_attach(_, bufnr)
   map("i", "<C-s>", vim.lsp.buf.signature_help, "Signature help")
 end
 
+local notified_missing = false
+
 ---@param bufnr integer
 function M.try_start(bufnr)
   bufnr = bufnr or vim.api.nvim_get_current_buf()
@@ -73,25 +78,24 @@ function M.try_start(bufnr)
 
   local cmd = server.resolve_cmd()
   if not cmd then
-    local cfg = config.get().server
-    if cfg.auto_install then
-      notify("language server não instalado. Rode :LsptInstallServer para instalar automaticamente.",
-        vim.log.levels.WARN)
+    if not notified_missing then
+      notified_missing = true
+      local cfg = config.get().server
+      if cfg.auto_install then
+        notify("language server não instalado. Rode :LsptInstallServer para instalar automaticamente.",
+          vim.log.levels.WARN)
+      end
     end
     return
   end
+  notified_missing = false
 
   local cfg = config.get()
   local root_dir = find_root(bufnr)
 
-  -- Já temos client para essa raiz? só dá attach.
-  local existing = clients_by_root[root_dir]
-  if existing and vim.lsp.get_client_by_id(existing) then
-    vim.lsp.buf_attach_client(bufnr, existing)
-    return
-  end
-
-  local client_id = vim.lsp.start({
+  -- vim.lsp.start já reusa internamente por (name, cmd, root_dir):
+  -- não cria duplicado, só dá buf_attach.
+  vim.lsp.start({
     name = "lspt",
     cmd  = cmd,
     root_dir = root_dir,
@@ -109,24 +113,13 @@ function M.try_start(bufnr)
         cfg.on_attach(client, buf)
       end
     end,
-    handlers = {
-      -- O server lê configuração via workspace/configuration; o handler default
-      -- já lida com isso porque passamos `settings` acima e o Neovim responde
-      -- automaticamente. Sem custom handler aqui.
-    },
   })
-
-  if client_id then
-    clients_by_root[root_dir] = client_id
-  end
 end
 
 function M.stop_all()
-  for _, id in pairs(clients_by_root) do
-    local client = vim.lsp.get_client_by_id(id)
-    if client then client.stop() end
+  for _, client in ipairs(vim.lsp.get_clients({ name = "lspt" })) do
+    client.stop()
   end
-  clients_by_root = {}
 end
 
 function M.restart()
