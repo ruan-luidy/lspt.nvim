@@ -27,7 +27,7 @@ Porte do excelente plugin VSCode [`llutti/vscode-language-lsp`](https://github.c
 - Neovim **≥ 0.10**
 - `git`, `npm` e `node` no `PATH` (para o auto-install do server)
 - LuaSnip (para snippets)
-- `cmp-nvim-lsp` (opcional, para integração com nvim-cmp)
+- `blink.cmp` **ou** `cmp-nvim-lsp` (opcional, detectados automaticamente)
 
 ## Instalação (Lazy.nvim / NvChad)
 
@@ -163,10 +163,14 @@ Plug-and-play se o `cmp_nvim_lsp` estiver instalado — o plugin chama `default_
 | `:LsptContextEdit`       | Edita contexto                                  |
 | `:LsptContextDelete`     | Remove contexto                                 |
 | `:LsptContextValidate`   | Valida todos os contextos                       |
+| `:LsptContextSettings`   | Abre configurações de contextos (server-side)   |
+| `:LsptQuickFixConfirmName` | Aplica Quick Fix: confirmar nome              |
+| `:LsptQuickFixEditPlan`  | Aplica Quick Fix: plano de edição               |
 | `:LsptIgnoreId {id}`     | Ignora um ID de diagnóstico                     |
 | `:LsptUnignoreId {id}`   | Para de ignorar                                 |
 | `:LsptListIgnoredIds`    | Lista IDs ignorados                             |
-| `:LsptClearIgnoredIds`   | Limpa lista de ignorados                        |
+| `:LsptClearIgnoredIds`   | Limpa lista de ignorados (workspace)            |
+| `:LsptClearIgnoredIdsUser` | Limpa IDs ignorados (usuário, server-side)    |
 | `:LsptSelectSystem`      | Seleciona sistema fallback (HCM/ACESSO/ERP)     |
 | `:LsptFormatToggle`      | Liga/desliga formatter                          |
 | `:LsptSnippets`          | Lista snippets disponíveis                      |
@@ -218,7 +222,7 @@ Rode `:LsptSnippets` para listar todos.
 
 - **Tree-sitter**: usei syntax tradicional do Vim (regex). Funciona muito bem, mas se você quiser tree-sitter "de verdade" precisa de uma grammar dedicada — projeto separado.
 - **Comandos VSCode-específicos** que dependem de UI nativa do VSCode (criar/editar contexto via wizard) chamam `workspace/executeCommand` no server. Se o server original implementou esses comandos com `vscode.window.showInputBox`, eles vão falhar silenciosamente — para esses, edite `server_settings.contexts` diretamente no `setup()` e rode `:LsptRestart`.
-- **Auto-update do server**: rode `:LsptInstallServer` de novo para atualizar (vai dar `git pull` na pasta existente — atualmente o instalador não pulla, então remova a pasta e rode de novo).
+- **Auto-update do server**: `:LsptInstallServer` faz `git pull --ff-only` se o repo já existir e re-builda.
 
 ## Atualizar o server
 
