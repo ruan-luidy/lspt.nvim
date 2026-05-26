@@ -23,7 +23,7 @@ local function exec(cmd, args)
       vim.notify("[lspt] erro: " .. vim.inspect(err), vim.log.levels.ERROR)
       return
     end
-    if result then
+    if result ~= nil then
       vim.notify("[lspt] " .. vim.inspect(result))
     end
   end)
@@ -100,9 +100,9 @@ function M.register()
     { desc = "Abre configurações de contextos LSP" })
 
   -- ----- Quick Fix (server-side) -----
-  create("LsptQuickFixConfirmName", function() exec("lsp.quickFix.confirmName") end,
+  create("LsptQuickFixConfirmName", function() exec("lsp.quickfix.applyWithNamePrompt") end,
     { desc = "Aplica Quick Fix: confirmar nome" })
-  create("LsptQuickFixEditPlan", function() exec("lsp.quickFix.applyEditPlan") end,
+  create("LsptQuickFixEditPlan", function() exec("lsp.quickfix.applyEditPlan") end,
     { desc = "Aplica Quick Fix: plano de edição" })
 
   -- ----- Diagnósticos -----
@@ -112,31 +112,52 @@ function M.register()
     return (diag and diag.ignoreIds) or {}
   end
 
+  local function do_ignore(id)
+    local list = vim.deepcopy(ignored_ids())
+    if not vim.tbl_contains(list, id) then
+      table.insert(list, id)
+      update_setting({ "diagnostics", "ignoreIds" }, list)
+      vim.notify("[lspt] ignorando diagnóstico: " .. id)
+    end
+  end
+
   create("LsptIgnoreId", function(opts)
-    if opts.args == "" then
-      exec("lsp.diagnostics.ignoreId")
+    if opts.args ~= "" then
+      do_ignore(opts.args)
     else
-      local list = vim.deepcopy(ignored_ids())
-      if not vim.tbl_contains(list, opts.args) then
-        table.insert(list, opts.args)
-        update_setting({ "diagnostics", "ignoreIds" }, list)
-        vim.notify("[lspt] ignorando diagnóstico: " .. opts.args)
-      end
+      vim.ui.input({ prompt = "ID do diagnóstico a ignorar: " }, function(input)
+        if input and input ~= "" then do_ignore(input) end
+      end)
     end
   end, { nargs = "?", desc = "Ignora um ID de diagnóstico" })
 
-  create("LsptUnignoreId", function(opts)
-    if opts.args == "" then
-      exec("lsp.diagnostics.unignoreId")
-    else
-      local out = {}
-      for _, id in ipairs(ignored_ids()) do
-        if id ~= opts.args then table.insert(out, id) end
-      end
-      update_setting({ "diagnostics", "ignoreIds" }, out)
-      vim.notify("[lspt] não ignora mais: " .. opts.args)
+  local function do_unignore(id)
+    local out = {}
+    for _, v in ipairs(ignored_ids()) do
+      if v ~= id then table.insert(out, v) end
     end
-  end, { nargs = "?", desc = "Para de ignorar um ID de diagnóstico" })
+    update_setting({ "diagnostics", "ignoreIds" }, out)
+    vim.notify("[lspt] não ignora mais: " .. id)
+  end
+
+  create("LsptUnignoreId", function(opts)
+    if opts.args ~= "" then
+      do_unignore(opts.args)
+    else
+      local list = ignored_ids()
+      if #list == 0 then
+        vim.notify("[lspt] nenhum ID ignorado", vim.log.levels.INFO)
+        return
+      end
+      vim.ui.select(list, { prompt = "ID a deixar de ignorar:" }, function(choice)
+        if choice then do_unignore(choice) end
+      end)
+    end
+  end, {
+    nargs = "?",
+    complete = function() return vim.deepcopy(ignored_ids()) end,
+    desc = "Para de ignorar um ID de diagnóstico",
+  })
 
   create("LsptListIgnoredIds", function()
     local list = ignored_ids()
@@ -158,12 +179,21 @@ function M.register()
     { desc = "Limpa IDs ignorados a nível de usuário (server-side)" })
 
   -- ----- Fallback System -----
+  local function do_select_system(system)
+    update_setting({ "fallback", "defaultSystem" }, system)
+    for _, client in ipairs(vim.lsp.get_clients({ name = "lspt" })) do
+      client.notify("lsp/fallbackSystemChanged", { system = system })
+    end
+    vim.notify("[lspt] sistema padrão: " .. system)
+  end
+
   create("LsptSelectSystem", function(opts)
-    if opts.args == "" then
-      exec("lsp.fallback.selectSystem")
+    if opts.args ~= "" then
+      do_select_system(opts.args)
     else
-      update_setting({ "fallback", "defaultSystem" }, opts.args)
-      vim.notify("[lspt] sistema padrão: " .. opts.args)
+      vim.ui.select({ "HCM", "ACESSO", "ERP" }, { prompt = "Sistema fallback:" }, function(choice)
+        if choice then do_select_system(choice) end
+      end)
     end
   end, {
     nargs = "?",

@@ -21,3 +21,14 @@ vim.api.nvim_create_autocmd("FileType", {
     if ok then lsp.try_start(args.buf) end
   end,
 })
+
+-- Notifica o server quando Neovim ganha ou perde foco (afeta scheduling de diagnósticos).
+vim.api.nvim_create_autocmd({ "FocusGained", "FocusLost" }, {
+  group = vim.api.nvim_create_augroup("lspt-focus", { clear = true }),
+  callback = function(args)
+    local focused = args.event == "FocusGained"
+    for _, client in ipairs(vim.lsp.get_clients({ name = "lspt" })) do
+      client.notify("lsp/windowFocusChanged", { focused = focused })
+    end
+  end,
+})

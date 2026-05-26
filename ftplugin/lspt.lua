@@ -8,11 +8,12 @@ vim.b.did_ftplugin_lspt = true
 
 -- ---------------------------------------------------------------------------
 -- Comentários
--- O VSCode trata `@-- ... --@` como blockComment. Mapeamos pra commentstring
--- do Neovim. Compatível com vim-commentary, mini.comment e Comment.nvim.
+-- A linguagem usa `@-- ... --@` como comentário de linha (@...@ é o delimitador)
+-- e `/* */` como block comment (lsp-configuration.json). commentstring usa o
+-- estilo @-- para compatibilidade com vim-commentary, mini.comment e Comment.nvim.
 -- ---------------------------------------------------------------------------
 vim.bo.commentstring = "@-- %s --@"
-vim.bo.comments      = "s:@--,m: ,e:--@"
+vim.bo.comments      = "s1:/*,mb: *,ex:*/,s:@--,m: ,e:--@"
 
 -- ---------------------------------------------------------------------------
 -- Brackets / matchpairs
@@ -27,6 +28,7 @@ vim.b.match_words = table.concat({
   [[\<\c\(enquanto\)\>:\<\c\(fim\)\>]],
   [[\<\c\(para\)\>:\<\c\(fim\)\>]],
   [[\<\c\(funcao\)\>:\<\c\(retorna\)\>:\<\c\(fim\)\>]],
+  [[\/\*:\*\/]],
 }, ",")
 vim.b.match_ignorecase = 1
 

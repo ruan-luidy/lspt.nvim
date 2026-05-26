@@ -164,7 +164,7 @@ Plug-and-play se o `cmp_nvim_lsp` estiver instalado — o plugin chama `default_
 | `:LsptContextDelete`     | Remove contexto                                 |
 | `:LsptContextValidate`   | Valida todos os contextos                       |
 | `:LsptContextSettings`   | Abre configurações de contextos (server-side)   |
-| `:LsptQuickFixConfirmName` | Aplica Quick Fix: confirmar nome              |
+| `:LsptQuickFixConfirmName` | Aplica Quick Fix: prompt de nome (server-side) |
 | `:LsptQuickFixEditPlan`  | Aplica Quick Fix: plano de edição               |
 | `:LsptIgnoreId {id}`     | Ignora um ID de diagnóstico                     |
 | `:LsptUnignoreId {id}`   | Para de ignorar                                 |

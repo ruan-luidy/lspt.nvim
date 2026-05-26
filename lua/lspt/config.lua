@@ -30,7 +30,7 @@ local defaults = {
 	server = {
 		auto_install = true,
 		command = nil,
-		install_dir = vim.fn.stdpath("data") .. "/lspt-server",
+		install_dir = vim.fs.joinpath(vim.fn.stdpath("data"), "lspt-server"),
 		repo = "https://github.com/llutti/vscode-language-lsp.git",
 		branch = nil, -- nil = default branch
 		node = "node",

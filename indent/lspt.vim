@@ -20,8 +20,9 @@ if exists("*LsptIndent")
 endif
 
 function! s:strip_comments_strings(line) abort
-  " Remove strings e comentários de bloco da linha para análise de indent.
+  " Remove strings e comentários da linha para análise de indent.
   let l:s = a:line
+  let l:s = substitute(l:s, '/\*.\{-}\*/', '', 'g')
   let l:s = substitute(l:s, '@--.\{-}--@', '', 'g')
   let l:s = substitute(l:s, '"\([^"\\]\|\\.\)*"', '""', 'g')
   let l:s = substitute(l:s, "'\\([^'\\\\]\\|\\\\.\\)*'", "''", 'g')

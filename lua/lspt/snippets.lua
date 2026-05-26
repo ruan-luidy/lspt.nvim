@@ -24,9 +24,14 @@ function M.setup_buffer()
   local ok, ls = pcall(require, "luasnip")
   if not ok then return end
 
+  -- Converte tabs do corpo dos snippets para espaços do buffer atual.
+  -- O parser do LuaSnip não respeita expandtab/shiftwidth automaticamente.
+  local sw = (vim.bo.shiftwidth > 0) and vim.bo.shiftwidth or 2
+  local indent = string.rep(" ", sw)
+
   local snippets = {}
   for _, item in ipairs(data) do
-    local body = table.concat(item.body, "\n")
+    local body = table.concat(item.body, "\n"):gsub("\t", indent)
     local snip = ls.parser.parse_snippet(
       { trig = item.prefix, name = item.name, dscr = item.description },
       body

@@ -23,7 +23,8 @@ syntax case ignore
 " ============================================================================
 " Comentários
 " ============================================================================
-syntax region lsptComment   start=/@--/ end=/--@/ contains=lsptCommentTodo,@Spell keepend
+syntax region lsptComment      start=/@--/ end=/--@/ contains=lsptCommentTodo,@Spell keepend
+syntax region lsptBlockComment start=/\/\*/ end=/\*\// contains=lsptCommentTodo,@Spell keepend
 syntax keyword lsptCommentTodo TODO FIXME XXX NOTE HACK contained
 syntax match  lsptBlocoPragma /@--\s*\%(Bloco\|FimBloco\|fimbloco\)\>\s*'[^']*'\s*--@/
 syntax match  lsptSqlPragma   /^\s*@lsp-sql-\%(consulta\|fragmento\)@\s*$/
@@ -81,7 +82,7 @@ syntax keyword lsptMensagemMode retorna erro refaz contained
 " e o identificador depois do tipo vire lsptDefinirIdent.
 syntax keyword lsptKeyword definir nextgroup=lsptDefinirType skipwhite skipnl
 syntax keyword lsptKeyword
-      \ end fim inicio regra tabela vaparacampo vaparapagina
+      \ end fim inicio regra vaparacampo vaparapagina
       \ retorna erro iniciartransacao desfazertransacao finalizartransacao
 
 " `funcao` também tem identificador esperado após
@@ -116,6 +117,14 @@ syntax match lsptParamIdent /[,(]\s*\<\%(alfa\|numero\|data\)\>\s\+\%(\<end\>\s\
 " ============================================================================
 syntax match lsptMethod /\.\zs\<\%(abrircursor\|achou\|fecharcursor\|naoachou\|proximo\|sql\|usaabrangencia\|adicionar\|adicionarcampo\|anterior\|cancelar\|chave\|definircampos\|editar\|editarchave\|efetivarcampos\|excluir\|fda\|gravar\|ida\|inserir\|limpar\|numreg\|primeiro\|qtdregistros\|setanumreg\|setarchave\|ultimo\|vaiparachave\)\>/
 
+" Região de SQL embutido via método .SQL("...") — definida APÓS lsptMethod para
+" ter prioridade sobre ele quando seguida de uma string (cursor.SQL("SELECT ..."))
+syntax region lsptEmbeddedSql matchgroup=lsptSqlFunc
+      \ start=/\.\<SQL\>\s*(\s*"/
+      \ skip=/\\"/
+      \ end=/"/
+      \ contains=@lsptSqlContents keepend
+
 " ============================================================================
 " Chamadas de função genéricas
 " Exclusões:
@@ -133,46 +142,49 @@ syntax match lsptNumber /\<\d*\.\d\+\%([eE][-+]\?\d\+\)\?\>/
 " ============================================================================
 " Operadores e pontuação
 " ============================================================================
-syntax match lsptOperatorSym /[+\-*/=<>!]\|<=\|>=\|<>\|!=/
-syntax match lsptPunctuation /[;,]/
+syntax match lsptOperatorSym /<=\|>=\|<>\|!=\|[+\-*/=<>!]/
+syntax match lsptPunctuation /[;,()[\]{}]/
 
 " ============================================================================
-" Highlight links
+" Highlight links — usa grupos @treesitter para compatibilidade com temas
+" modernos (catppuccin, tokyonight, etc.). Cada @grupo tem fallback para o
+" grupo Vim clássico, então funciona em qualquer versão >= 0.10.
 " ============================================================================
-highlight default link lsptComment        Comment
-highlight default link lsptCommentTodo    Todo
-highlight default link lsptBlocoPragma    PreProc
-highlight default link lsptSqlPragma      PreProc
+highlight default link lsptComment        @comment
+highlight default link lsptBlockComment   @comment
+highlight default link lsptCommentTodo    @comment.note
+highlight default link lsptBlocoPragma    @attribute
+highlight default link lsptSqlPragma      @attribute
 
-highlight default link lsptString         String
-highlight default link lsptStringSingle   String
-highlight default link lsptStringEscape   SpecialChar
+highlight default link lsptString         @string
+highlight default link lsptStringSingle   @string
+highlight default link lsptStringEscape   @string.escape
 
-highlight default link lsptEmbeddedSql    String
-highlight default link lsptSqlFunc        Function
-highlight default link lsptSqlBindVar     Identifier
-highlight default link lsptSqlKeyword     Statement
+highlight default link lsptEmbeddedSql    @string.special
+highlight default link lsptSqlFunc        @function.call
+highlight default link lsptSqlBindVar     @variable.parameter
+highlight default link lsptSqlKeyword     @keyword
 
-highlight default link lsptKeyword        Keyword
-highlight default link lsptControl        Conditional
-highlight default link lsptOperator       Operator
-highlight default link lsptOperatorSym    Operator
-highlight default link lsptType           Type
-highlight default link lsptDefinirType    Type
-highlight default link lsptBoolean        Boolean
-highlight default link lsptNumber         Number
-highlight default link lsptPunctuation    Delimiter
+highlight default link lsptKeyword        @keyword
+highlight default link lsptControl        @keyword.conditional
+highlight default link lsptOperator       @keyword.operator
+highlight default link lsptOperatorSym    @operator
+highlight default link lsptType           @type.builtin
+highlight default link lsptDefinirType    @type.builtin
+highlight default link lsptBoolean        @boolean
+highlight default link lsptNumber         @number
+highlight default link lsptPunctuation    @punctuation.delimiter
 
-highlight default link lsptMensagemKw     Keyword
-highlight default link lsptMensagemMode   Special
+highlight default link lsptMensagemKw     @keyword
+highlight default link lsptMensagemMode   @string.special
 
-highlight default link lsptDefinirIdent       Identifier
-highlight default link lsptFuncaoIdent        Function
-highlight default link lsptChamarFuncaoIdent  Function
-highlight default link lsptParamIdent         Identifier
+highlight default link lsptDefinirIdent       @variable
+highlight default link lsptFuncaoIdent        @function
+highlight default link lsptChamarFuncaoIdent  @function.call
+highlight default link lsptParamIdent         @variable.parameter
 
-highlight default link lsptMethod        Function
-highlight default link lsptFunctionCall  Function
+highlight default link lsptMethod        @function.method.call
+highlight default link lsptFunctionCall  @function.call
 
 let b:current_syntax = "lspt"
 

@@ -8,14 +8,6 @@
 
 local M = {}
 
-local function feed(keys)
-  vim.api.nvim_feedkeys(
-    vim.api.nvim_replace_termcodes(keys, true, false, true),
-    "n",
-    false
-  )
-end
-
 -- Expande "inicio<CR>" para
 --   inicio
 --   |    <-- cursor aqui, indentado um nível
@@ -58,9 +50,11 @@ function M.attach(bufnr)
   end, { buffer = bufnr, expr = true, replace_keycodes = true,
         desc = "[lspt] expande inicio/fim" })
 
-  -- @-- ... --@ (cursor no meio)
+  -- @-- ... --@ (cursor posicionado entre os espaços centrais)
   vim.keymap.set("i", "@--", function()
-    feed("@--  --@<Left><Left><Left><Left>")
+    local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+    vim.api.nvim_buf_set_text(0, row - 1, col, row - 1, col, { "@--  --@" })
+    vim.api.nvim_win_set_cursor(0, { row, col + 4 })
   end, { buffer = bufnr, desc = "[lspt] auto-pair comentário" })
 end
 

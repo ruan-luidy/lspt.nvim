@@ -41,9 +41,16 @@ function M.expr(lnum)
 end
 
 function M.text()
-	local lnum = vim.v.foldstart
-	local line = get_line(lnum)
+	local lnum  = vim.v.foldstart
+	local line  = get_line(lnum)
 	local count = vim.v.foldend - vim.v.foldstart + 1
+
+	-- Extrai nome do bloco @-- Bloco 'nome' --@ → mostra só o nome
+	local name = line:match("[Bb]loco%s+'([^']+)'")
+	if name then
+		return string.format("  + %s  [%d linhas]", name, count)
+	end
+
 	local trimmed = line:gsub("^%s+", ""):gsub("%s+$", "")
 	return string.format("  %s  [%d linhas]", trimmed, count)
 end

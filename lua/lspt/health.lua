@@ -32,7 +32,15 @@ function M.check()
 	-- Versão do Node
 	if vim.fn.executable("node") == 1 then
 		local node_ver = vim.fn.system({ "node", "--version" }):gsub("%s+$", "")
-		info("node version: " .. node_ver)
+		if vim.v.shell_error == 0 then
+			info("node version: " .. node_ver)
+			local major = tonumber(node_ver:match("v(%d+)"))
+			if major and major < 16 then
+				warn("Node.js " .. node_ver .. " pode ser muito antigo — recomendado v16+")
+			end
+		else
+			warn("node encontrado mas falhou ao checar versão: " .. node_ver)
+		end
 	end
 
 	-- LuaSnip

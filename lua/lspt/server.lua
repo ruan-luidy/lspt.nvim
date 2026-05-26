@@ -4,7 +4,7 @@
 -- Estratégia:
 --   1. git clone (raso) do repo em config.server.install_dir
 --   2. npm install
---   3. npm -w lsp run build   (builda só o pacote `extension`, que produz dist/server.js)
+--   3. npm run build   (na raiz do repo; o script raiz delega ao pacote extension)
 --   4. Resolve o caminho do server.js
 --
 -- A função `resolve()` retorna o array `cmd` pronto pro vim.lsp.start ou nil
@@ -23,14 +23,10 @@ local function path_exists(p)
   return uv.fs_stat(p) ~= nil
 end
 
-local function join(...)
-  return table.concat({ ... }, "/"):gsub("/+", "/")
-end
-
----@return string|nil server_js  caminho absoluto pro dist/server.js
+---@return string server_js  caminho absoluto pro dist/server.js
 function M.server_path()
   local cfg = config.get().server
-  return join(cfg.install_dir, "packages/extension/dist/server.js")
+  return vim.fs.joinpath(cfg.install_dir, "packages/extension/dist/server.js")
 end
 
 ---@return boolean
@@ -74,11 +70,11 @@ function M.install(on_done)
 
   -- 1) clone (se ainda não foi clonado) ou pull (para atualizar in-place)
   local function step_clone(next)
-    if path_exists(join(dir, ".git")) then
+    if path_exists(vim.fs.joinpath(dir, ".git")) then
       notify("repo já existe, atualizando via git pull ...")
       run({ "git", "-C", dir, "pull", "--ff-only" }, nil, function(code, _, err)
         if code ~= 0 then
-          on_done(false, "git pull falhou: " .. table.concat(err, "\n"))
+          on_done(false, "git pull falhou: " .. table.concat(vim.tbl_filter(function(l) return l ~= "" end, err), "\n"))
           return
         end
         next()
@@ -97,7 +93,7 @@ function M.install(on_done)
 
     run(cmd, nil, function(code, _, err)
       if code ~= 0 then
-        on_done(false, "git clone falhou: " .. table.concat(err, "\n"))
+        on_done(false, "git clone falhou: " .. table.concat(vim.tbl_filter(function(l) return l ~= "" end, err), "\n"))
         return
       end
       next()
@@ -108,7 +104,7 @@ function M.install(on_done)
     notify("rodando npm install (pode demorar alguns minutos) ...")
     run({ "npm", "install" }, dir, function(code, _, err)
       if code ~= 0 then
-        on_done(false, "npm install falhou: " .. table.concat(err, "\n"))
+        on_done(false, "npm install falhou: " .. table.concat(vim.tbl_filter(function(l) return l ~= "" end, err), "\n"))
         return
       end
       next()
@@ -119,7 +115,7 @@ function M.install(on_done)
     notify("buildando o language server ...")
     run({ "npm", "run", "build" }, dir, function(code, _, err)
       if code ~= 0 then
-        on_done(false, "npm run build falhou: " .. table.concat(err, "\n"))
+        on_done(false, "npm run build falhou: " .. table.concat(vim.tbl_filter(function(l) return l ~= "" end, err), "\n"))
         return
       end
       next()

@@ -14,21 +14,18 @@ end
 local function find_root(bufnr)
   local fname = vim.api.nvim_buf_get_name(bufnr)
   if fname == "" then
-    return vim.uv and vim.uv.cwd() or vim.loop.cwd()
+    return vim.uv.cwd()
   end
 
-  -- raízes em ordem de preferência: .git, .vscode (se existir, é o workspace
-  -- do plugin original), senão o diretório do arquivo.
-  local markers = { ".git", ".vscode" }
-  local found = vim.fs.find(markers, {
-    upward = true,
-    path = vim.fs.dirname(fname),
-  })[1]
-
-  if found then
-    return vim.fs.dirname(found)
+  local dir = vim.fs.dirname(fname)
+  -- Busca marcadores em ordem de preferência: .git tem prioridade sobre .vscode
+  for _, marker in ipairs({ ".git", ".vscode" }) do
+    local found = vim.fs.find(marker, { upward = true, path = dir })[1]
+    if found then
+      return vim.fs.dirname(found)
+    end
   end
-  return vim.fs.dirname(fname)
+  return dir
 end
 
 local function build_capabilities()
@@ -100,17 +97,55 @@ function M.try_start(bufnr)
     cmd  = cmd,
     root_dir = root_dir,
     capabilities = build_capabilities(),
+    workspace_folders = {
+      { uri = vim.uri_from_fname(root_dir), name = vim.fs.basename(root_dir) },
+    },
     init_options = {
-      vscodeVersion    = "neovim/" .. tostring(vim.version()),
-      globalStoragePath = vim.fn.stdpath("data") .. "/lspt-global",
+      vscodeVersion     = "neovim/" .. tostring(vim.version()),
+      globalStoragePath = vim.fs.joinpath(vim.fn.stdpath("data"), "lspt-global"),
     },
     settings = {
       lsp = cfg.server_settings,
     },
+    handlers = {
+      ["lsp/log"] = function(_, params)
+        if params and params.message then
+          local level = params.level == "error" and vim.log.levels.ERROR
+            or params.level == "warn" and vim.log.levels.WARN
+            or vim.log.levels.DEBUG
+          notify("server: " .. params.message, level)
+        end
+      end,
+    },
+    on_exit = function(code, signal)
+      if code ~= 0 then
+        vim.schedule(function()
+          notify(
+            string.format("server encerrou inesperadamente (code=%d, signal=%d)", code, signal),
+            vim.log.levels.WARN
+          )
+        end)
+      end
+    end,
     on_attach = function(client, buf)
-      default_on_attach(client, buf)
+      -- Notifica o server sobre o documento ativo (melhora prioridade de diagnósticos)
+      local function notify_active()
+        local fname = vim.api.nvim_buf_get_name(buf)
+        if fname ~= "" then
+          client.notify("lsp/activeDocumentChanged", { uri = vim.uri_from_fname(fname) })
+        end
+      end
+      notify_active()
+      vim.api.nvim_create_autocmd("BufEnter", {
+        buffer = buf,
+        group  = vim.api.nvim_create_augroup("lspt-active-doc-" .. buf, { clear = true }),
+        callback = notify_active,
+      })
+
       if cfg.on_attach then
         cfg.on_attach(client, buf)
+      else
+        default_on_attach(client, buf)
       end
     end,
   })
